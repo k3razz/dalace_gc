@@ -23,7 +23,7 @@ bool SharedGC::HasOutgoingMessages(uint32_t &size)
         return false;
     }
 
-    GCMessageWrite &message = *m_outgoingMessages.front();  // <-- ИЗМЕНИТЬ
+    GCMessageWrite &message = *m_outgoingMessages.front();
     size = message.Size();
 
     return true;
@@ -37,7 +37,7 @@ bool SharedGC::PopOutgoingMessage(uint32_t &type, void *buffer, uint32_t bufferS
         return false;
     }
 
-    GCMessageWrite &message = *m_outgoingMessages.front();  // <-- ИЗМЕНИТЬ
+    GCMessageWrite &message = *m_outgoingMessages.front();
     type = message.TypeMasked();
     size = message.Size();
 
