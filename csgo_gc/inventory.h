@@ -3,6 +3,7 @@
 #include "gc_const_csgo.h"
 #include "item_schema.h"
 #include "random.h"
+#include <mutex>
 
 class GCConfig;
 class KeyValue;
@@ -14,6 +15,7 @@ class Inventory
 public:
     Inventory(uint64_t steamId, const GCConfig &config);
     ~Inventory();
+
 
     void BuildCacheSubscription(CMsgSOCacheSubscribed &message, int level, bool server);
 
@@ -135,4 +137,5 @@ private:
     uint32_t m_lastHighItemId{};
     ItemMap m_items;
     std::vector<CSOEconDefaultEquippedDefinitionInstanceClient> m_defaultEquips;
+    mutable std::mutex m_fileMutex;
 };

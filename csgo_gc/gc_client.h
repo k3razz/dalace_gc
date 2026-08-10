@@ -24,6 +24,8 @@ public:
 
     void Update();
 
+    void SaveConfig() { m_config.WriteToFile(); }
+
     // purchases
     bool GetMicroTransactionResponse(MicroTxnAuthorizationResponse_t &response);
 

@@ -64,3 +64,32 @@ float GCConfig::GetRarityWeight(uint32_t rarity) const
 
     return 0;
 }
+
+void GCConfig::WriteToFile() const
+{
+    KeyValue config{ "config" };
+    
+    KeyValue &ranks = config.AddSubkey("ranks");
+    ranks.AddNumber("competitive_rank", m_competitiveRank);
+    ranks.AddNumber("competitive_wins", m_competitiveWins);
+    ranks.AddNumber("wingman_rank", m_wingmanRank);
+    ranks.AddNumber("wingman_wins", m_wingmanWins);
+    ranks.AddNumber("dangerzone_rank", m_dangerZoneRank);
+    ranks.AddNumber("dangerzone_wins", m_dangerZoneWins);
+    
+    config.AddNumber("destroy_used_items", m_destroyUsedItems);
+    config.AddNumber("vac_banned", m_vacBanned);
+    config.AddNumber("cmd_friendly", m_commendedFriendly);
+    config.AddNumber("cmd_teaching", m_commendedTeaching);
+    config.AddNumber("cmd_leader", m_commendedLeader);
+    config.AddNumber("player_level", m_level);
+    config.AddNumber("player_cur_xp", m_xp);
+    
+    KeyValue &rarityWeights = config.AddSubkey("rarity_weights");
+    for (const RarityWeight &rw : m_rarityWeights)
+    {
+        rarityWeights.AddNumber(std::to_string(rw.rarity), rw.weight);
+    }
+    
+    config.WriteToFile(ConfigFilePath);
+}

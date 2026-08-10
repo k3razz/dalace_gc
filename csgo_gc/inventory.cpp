@@ -250,6 +250,8 @@ void Inventory::ReadItem(const KeyValue &itemKey, CSOEconItem &item) const
 
 void Inventory::WriteToFile() const
 {
+    std::lock_guard<std::mutex> lock(m_fileMutex);
+
     KeyValue inventoryKey{ "inventory" };
 
     {

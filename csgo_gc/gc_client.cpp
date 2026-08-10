@@ -324,6 +324,7 @@ void ClientGC::SendRankUpdate()
     rank->set_rank_type_id(RankTypeDangerZone);
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientGCRankUpdate, message);
+    m_config.WriteToFile();
 }
 
 void ClientGC::OnClientHello(GCMessageRead &messageRead)
@@ -372,6 +373,7 @@ void ClientGC::AdjustItemEquippedState(GCMessageRead &messageRead)
 
     // let the gameserver know, too
     SendMessageToGame(true, k_ESOMsg_UpdateMultiple, update);
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::ClientPlayerDecalSign(GCMessageRead &messageRead)
@@ -412,6 +414,7 @@ void ClientGC::UseItemRequest(GCMessageRead &messageRead)
 
         SendMessageToGame(false, k_EMsgGCItemCustomizationNotification, notification);
     }
+    m_inventory.WriteToFile();
 }
 
 static void AddressString(uint32_t ip, uint32_t port, char *buffer, size_t bufferSize)
@@ -475,6 +478,7 @@ void ClientGC::SetItemPositions(GCMessageRead &messageRead)
     {
         assert(false);
     }
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::IncrementKillCountAttribute(GCMessageRead &messageRead)
@@ -552,6 +556,7 @@ void ClientGC::ApplySticker(GCMessageRead &messageRead)
     {
         assert(false);
     }
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::StoreGetUserData(GCMessageRead &messageRead)
@@ -705,6 +710,7 @@ void ClientGC::StorePurchaseInit(GCMessageRead &messageRead)
     {
         SendMessageToGame(true, k_ESOMsg_Create, newItem);
     }
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::StorePurchaseFinalize(GCMessageRead &messageRead)
@@ -830,6 +836,7 @@ void ClientGC::UnlockCrate(GCMessageRead &messageRead)
         Platform::Print("[GC_CLIENT] ERROR: UnlockCrate failed!\n");
         assert(false);
     }
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::NameItem(GCMessageRead &messageRead)
@@ -858,6 +865,7 @@ void ClientGC::NameItem(GCMessageRead &messageRead)
     {
         assert(false);
     }
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::NameBaseItem(GCMessageRead &messageRead)
@@ -886,6 +894,7 @@ void ClientGC::NameBaseItem(GCMessageRead &messageRead)
     {
         assert(false);
     }
+    m_inventory.WriteToFile();
 }
 
 void ClientGC::RemoveItemName(GCMessageRead &messageRead)
@@ -917,4 +926,5 @@ void ClientGC::RemoveItemName(GCMessageRead &messageRead)
     {
         assert(false);
     }
+    m_inventory.WriteToFile();
 }

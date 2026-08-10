@@ -30,6 +30,8 @@ public:
     int Level() const { return m_level; }
     int Xp() const { return m_xp; }
 
+    void WriteToFile() const;
+
     float GetRarityWeight(uint32_t rarity) const;
 
 private:
