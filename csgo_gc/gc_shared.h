@@ -1,3 +1,9 @@
+#pragma once
+
+#include "gc_message.h"
+#include <queue>
+#include <memory>
+
 class SharedGC
 {
 public:
