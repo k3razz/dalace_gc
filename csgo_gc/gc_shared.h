@@ -1,8 +1,3 @@
-#pragma once
-
-#include "gc_message.h"
-
-// only the message queue code is the same on client and server gcs
 class SharedGC
 {
 public:
@@ -10,5 +5,5 @@ public:
     bool PopOutgoingMessage(uint32_t &type, void *buffer, uint32_t bufferSize, uint32_t &size);
 
 protected:
-    std::queue<GCMessageWrite> m_outgoingMessages;
+    std::queue<std::unique_ptr<GCMessageWrite>> m_outgoingMessages;  // <-- ИЗМЕНИТЬ
 };

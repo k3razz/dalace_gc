@@ -16,6 +16,19 @@ bool SharedGC::HasOutgoingMessages(uint32_t &size)
     return true;
 }
 
+bool SharedGC::HasOutgoingMessages(uint32_t &size)
+{
+    if (m_outgoingMessages.empty())
+    {
+        return false;
+    }
+
+    GCMessageWrite &message = *m_outgoingMessages.front();  // <-- ИЗМЕНИТЬ
+    size = message.Size();
+
+    return true;
+}
+
 bool SharedGC::PopOutgoingMessage(uint32_t &type, void *buffer, uint32_t bufferSize, uint32_t &size)
 {
     if (m_outgoingMessages.empty())
@@ -24,7 +37,7 @@ bool SharedGC::PopOutgoingMessage(uint32_t &type, void *buffer, uint32_t bufferS
         return false;
     }
 
-    GCMessageWrite &message = m_outgoingMessages.front();
+    GCMessageWrite &message = *m_outgoingMessages.front();  // <-- ИЗМЕНИТЬ
     type = message.TypeMasked();
     size = message.Size();
 

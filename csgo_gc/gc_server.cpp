@@ -190,7 +190,7 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
         return;
     }
 
-    m_outgoingMessages.push(GCMessageWrite(data, size));
+    m_outgoingMessages.push(std::make_unique<GCMessageWrite>(data, size));
 }
 
 void ServerGC::OnServerHello(GCMessageRead &messageRead)
