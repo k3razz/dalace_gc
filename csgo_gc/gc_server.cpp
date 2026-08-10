@@ -151,6 +151,90 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
             request.server_port());
         response.mutable_res()->set_server_address(addressString);
 
+        // ПРЯМАЯ ПЕРЕДАЧА В ОЧЕРЕДЬ
+        GCMessageWrite message(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
+        m_outgoingMessages.push(std::move(message));
+
+        Platform::Print("[GC] Fake MM: spoofed reservation_id for official match\n");
+        return;
+    }
+
+    // validate the type and contents
+    bool isValid = false;
+
+    switch (validate.TypeUnmasked())
+    {
+    case k_ESOMsg_Create:
+    case k_ESOMsg_Update:
+    case k_ESOMsg_Destroy:
+        isValid = ValidateMessageOwnerSOID<CMsgSOSingleObject>(validate, steamId);
+        break;
+
+    case k_ESOMsg_CacheSubscribed:
+        isValid = ValidateMessageOwnerSOID<CMsgSOCacheSubscribed>(validate, steamId);
+        break;
+
+    case k_ESOMsg_UpdateMultiple:
+        isValid = ValidateMessageOwnerSOID<CMsgSOMultipleObjects>(validate, steamId);
+        break;
+
+    case k_EMsgGCItemAcknowledged:
+        isValid = true;
+        break;
+    }
+
+    if (!isValid)
+    {
+        Platform::Print("ServerGC: ignoring net message %u from %llu\n",
+            validate.TypeUnmasked(), steamId);
+        return;
+    }
+
+    m_outgoingMessages.push(GCMessageWrite(data, size));
+}
+
+{
+    GCMessageRead validate{ 0, data, size };
+    if (!validate.IsValid())
+    {
+        assert(false);
+        return;
+    }
+
+    if (!validate.IsProtobuf())
+    {
+        Platform::Print("ServerGC: ignoring non protobuf message %u from %llu\n",
+            validate.TypeUnmasked(), steamId);
+        return;
+    }
+
+    GCConfig config;
+    bool fakeMM = config.FakeMM();
+
+    if (fakeMM && validate.TypeUnmasked() == k_EMsgGCCStrike15_v2_ClientRequestJoinServerData)
+    {
+        CMsgGCCStrike15_v2_ClientRequestJoinServerData request;
+        if (!validate.ReadProtobuf(request))
+        {
+            Platform::Print("Fake MM: Failed to parse ClientRequestJoinServerData\n");
+            return;
+        }
+
+        CMsgGCCStrike15_v2_ClientRequestJoinServerData response = request;
+        response.mutable_res()->set_serverid(request.version());
+        response.mutable_res()->set_direct_udp_ip(request.server_ip());
+        response.mutable_res()->set_direct_udp_port(request.server_port());
+        response.mutable_res()->set_reservationid(GameServerCookieId);
+
+        char addressString[32];
+        snprintf(addressString, sizeof(addressString), "%u.%u.%u.%u:%u",
+            (request.server_ip() >> 24) & 0xff,
+            (request.server_ip() >> 16) & 0xff,
+            (request.server_ip() >> 8) & 0xff,
+            request.server_ip() & 0xff,
+            request.server_port());
+        response.mutable_res()->set_server_address(addressString);
+
 
         GCMessageWrite messageWrite{ k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response };
         m_outgoingMessages.emplace(std::move(messageWrite));
