@@ -159,6 +159,12 @@ CSOEconItem &Inventory::CreateItem(uint32_t defIndex, ItemOrigin origin, Unackno
 
 void Inventory::ReadFromFile()
 {
+    std::lock_guard<std::mutex> lock(m_fileMutex);
+
+    m_items.clear();
+    m_defaultEquips.clear();
+    m_lastHighItemId = 0;
+
     KeyValue inventoryKey{ "inventory" };
     if (!inventoryKey.ParseFromFile(InventoryFilePath))
     {
