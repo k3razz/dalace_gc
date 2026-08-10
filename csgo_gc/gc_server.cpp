@@ -68,7 +68,7 @@ void ServerGC::ClientDisconnected(uint64_t steamId)
     message.mutable_owner_soid()->set_type(SoIdTypeSteamId);
     message.mutable_owner_soid()->set_id(steamId);
 
-    m_outgoingMessages.emplace(k_ESOMsg_CacheUnsubscribed, message);
+    m_outgoingMessages.push(std::make_unique<GCMessageWrite>(k_ESOMsg_CacheUnsubscribed, message));
 }
 
 void ServerGC::Update()
@@ -151,9 +151,7 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
             request.server_port());
         response.mutable_res()->set_server_address(addressString);
 
-        // ПРЯМАЯ ПЕРЕДАЧА В ОЧЕРЕДЬ
-        GCMessageWrite message(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
-        m_outgoingMessages.push(std::move(message));
+        m_outgoingMessages.push(std::make_unique<GCMessageWrite>(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response));
 
         Platform::Print("[GC] Fake MM: spoofed reservation_id for official match\n");
         return;
@@ -204,8 +202,6 @@ void ServerGC::OnServerHello(GCMessageRead &messageRead)
 
     Platform::Print("ServerGC received ServerHello\n");
 
-    // we don't care about anything in this message, just reply
-
     CMsgCStrike15Welcome csWelcome;
     csWelcome.set_gscookieid(GameServerCookieId);
 
@@ -214,7 +210,7 @@ void ServerGC::OnServerHello(GCMessageRead &messageRead)
     welcome.set_game_data(csWelcome.SerializeAsString());
     welcome.set_rtime32_gc_welcome_timestamp(static_cast<uint32_t>(time(nullptr)));
 
-    m_outgoingMessages.emplace(k_EMsgGCServerWelcome, welcome);
+    m_outgoingMessages.push(std::make_unique<GCMessageWrite>(k_EMsgGCServerWelcome, welcome));
 
     m_receivedHello = true;
     Platform::Print("ServerGC sent ServerWelcome and is ready\n");
@@ -229,7 +225,6 @@ void ServerGC::IncrementKillCountAttribute(GCMessageRead &messageRead)
         return;
     }
 
-    // just forward it to the killer
     GCMessageWrite messageWrite{ k_EMsgGC_IncrementKillCountAttribute, message };
     CSteamID killerId{ message.killer_account_id(), k_EUniversePublic, k_EAccountTypeIndividual };
     m_networking.SendMessage(killerId.ConvertToUint64(), messageWrite);

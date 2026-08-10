@@ -1,21 +1,6 @@
 #include "stdafx.h"
 #include "gc_shared.h"
 
-const char *MessageName(uint32_t type);
-
-bool SharedGC::HasOutgoingMessages(uint32_t &size)
-{
-    if (m_outgoingMessages.empty())
-    {
-        return false;
-    }
-
-    GCMessageWrite &message = m_outgoingMessages.front();
-    size = message.Size();
-
-    return true;
-}
-
 bool SharedGC::HasOutgoingMessages(uint32_t &size)
 {
     if (m_outgoingMessages.empty())

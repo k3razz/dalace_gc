@@ -292,7 +292,7 @@ void ClientGC::ClearAuthTicket(uint32_t handle)
 void ClientGC::SendMessageToGame(bool sendToGameServer, uint32_t type,
     const google::protobuf::MessageLite &message, uint64_t jobId)
 {
-    const GCMessageWrite &messageWrite = m_outgoingMessages.emplace(type, message, jobId);
+    const GCMessageWrite &messageWrite = m_outgoingMessages.push(std::make_unique<GCMessageWrite>(type, message, jobId));
 
     if (sendToGameServer)
     {
