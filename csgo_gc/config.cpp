@@ -3,7 +3,7 @@
 #include "keyvalue.h"
 #include "random.h"
 
-constexpr const char *ConfigFilePath = "csgo_gc/config.txt";
+constexpr const char* ConfigFilePath = "csgo_gc/config.txt";
 
 GCConfig::GCConfig()
 {
@@ -14,7 +14,7 @@ GCConfig::GCConfig()
         return;
     }
 
-    const KeyValue *ranks = config.GetSubkey("ranks");
+    const KeyValue* ranks = config.GetSubkey("ranks");
     if (ranks)
     {
         m_competitiveRank = ranks->GetNumber("competitive_rank", m_competitiveRank);
@@ -29,13 +29,13 @@ GCConfig::GCConfig()
 
     m_destroyUsedItems = config.GetNumber("destroy_used_items", m_destroyUsedItems);
 
-    const KeyValue *rarityWeights = config.GetSubkey("rarity_weights");
+    const KeyValue* rarityWeights = config.GetSubkey("rarity_weights");
     if (rarityWeights)
     {
         m_rarityWeights.clear();
         m_rarityWeights.reserve(rarityWeights->SubkeyCount());
 
-        for (const KeyValue &subkey : *rarityWeights)
+        for (const KeyValue& subkey : *rarityWeights)
         {
             RarityWeight weight;
             weight.rarity = FromString<uint32_t>(subkey.Name());
@@ -55,7 +55,7 @@ GCConfig::GCConfig()
 
 float GCConfig::GetRarityWeight(uint32_t rarity) const
 {
-    for (const RarityWeight &weight : m_rarityWeights)
+    for (const RarityWeight& weight : m_rarityWeights)
     {
         if (weight.rarity == rarity)
         {
@@ -69,15 +69,15 @@ float GCConfig::GetRarityWeight(uint32_t rarity) const
 void GCConfig::WriteToFile() const
 {
     KeyValue config{ "config" };
-    
-    KeyValue &ranks = config.AddSubkey("ranks");
+
+    KeyValue& ranks = config.AddSubkey("ranks");
     ranks.AddNumber("competitive_rank", m_competitiveRank);
     ranks.AddNumber("competitive_wins", m_competitiveWins);
     ranks.AddNumber("wingman_rank", m_wingmanRank);
     ranks.AddNumber("wingman_wins", m_wingmanWins);
     ranks.AddNumber("dangerzone_rank", m_dangerZoneRank);
     ranks.AddNumber("dangerzone_wins", m_dangerZoneWins);
-    
+
     config.AddNumber("destroy_used_items", m_destroyUsedItems);
     config.AddNumber("vac_banned", m_vacBanned);
     config.AddNumber("cmd_friendly", m_commendedFriendly);
@@ -85,12 +85,13 @@ void GCConfig::WriteToFile() const
     config.AddNumber("cmd_leader", m_commendedLeader);
     config.AddNumber("player_level", m_level);
     config.AddNumber("player_cur_xp", m_xp);
-    
-    KeyValue &rarityWeights = config.AddSubkey("rarity_weights");
-    for (const RarityWeight &rw : m_rarityWeights)
+    config.AddNumber("fake_mm", m_fakeMM);
+
+    KeyValue& rarityWeights = config.AddSubkey("rarity_weights");
+    for (const RarityWeight& rw : m_rarityWeights)
     {
         rarityWeights.AddNumber(std::to_string(rw.rarity), rw.weight);
     }
-    
+
     config.WriteToFile(ConfigFilePath);
 }

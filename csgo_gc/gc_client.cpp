@@ -231,7 +231,6 @@ void ClientGC::Update()
     if (m_matchInProgress && IsMatchEnded())
     {
         OnMatchEnd();
-        m_matchInProgress = false;
     }
 }
 
@@ -305,9 +304,8 @@ constexpr uint32_t MakeAddress(uint32_t v1, uint32_t v2, uint32_t v3, uint32_t v
     return v4 | (v3 << 8) | (v2 << 16) | (v1 << 24);
 }
 
-static void BuildCSWelcome(CMsgCStrike15Welcome &message)
+static void BuildCSWelcome(CMsgCStrike15Welcome& message)
 {
-    // mikkotodo cleanup dox
     message.set_store_item_hash(136617352);
     message.set_timeplayedconsecutively(0);
     message.set_time_first_played(1329845773);
@@ -315,25 +313,19 @@ static void BuildCSWelcome(CMsgCStrike15Welcome &message)
     message.set_last_ip_address(MakeAddress(127, 0, 0, 1));
 }
 
-void ClientGC::BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHello &message)
+void ClientGC::BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHello& message)
 {
     message.set_account_id(AccountId());
 
-    // this is the state of csgo matchmaking in 2024
     message.mutable_global_stats()->set_players_online(0);
     message.mutable_global_stats()->set_servers_online(0);
     message.mutable_global_stats()->set_players_searching(0);
     message.mutable_global_stats()->set_servers_available(0);
     message.mutable_global_stats()->set_ongoing_matches(0);
     message.mutable_global_stats()->set_search_time_avg(0);
-
-    // don't write search_statistics
-
     message.mutable_global_stats()->set_main_post_url("");
-
-    // bullshit
     message.mutable_global_stats()->set_required_appid_version(0);
-    message.mutable_global_stats()->set_pricesheet_version(1680057676); // mikkotodo revisit
+    message.mutable_global_stats()->set_pricesheet_version(1680057676);
     message.mutable_global_stats()->set_twitch_streams_version(2);
     message.mutable_global_stats()->set_active_tournament_eventid(20);
     message.mutable_global_stats()->set_active_survey_id(0);
@@ -345,30 +337,32 @@ void ClientGC::BuildMatchmakingHello(CMsgGCCStrike15_v2_MatchmakingGC2ClientHell
     message.mutable_commendation()->set_cmd_leader(m_config.CommendedLeader());
     message.set_player_level(m_config.Level());
     message.set_player_cur_xp(m_config.Xp());
+    
+    if (m_config.FakeMM())
+    {
+    }
 }
 
-void ClientGC::BuildClientWelcome(CMsgClientWelcome &message, const CMsgCStrike15Welcome &csWelcome,
-    const CMsgGCCStrike15_v2_MatchmakingGC2ClientHello &matchmakingHello)
+void ClientGC::BuildClientWelcome(CMsgClientWelcome& message, const CMsgCStrike15Welcome& csWelcome,
+    const CMsgGCCStrike15_v2_MatchmakingGC2ClientHello& matchmakingHello)
 {
-    // mikkotodo remove dox
-    message.set_version(0); // this is accurate
+    message.set_version(0);
     message.set_game_data(csWelcome.SerializeAsString());
-    // Keep cache subscription so the client can load inventory.
     m_inventory.BuildCacheSubscription(*message.add_outofdate_subscribed_caches(), m_config.Level(), false);
     message.mutable_location()->set_latitude(65.0133006f);
     message.mutable_location()->set_longitude(25.4646212f);
-    message.mutable_location()->set_country("FI"); // finland
+    message.mutable_location()->set_country("FI");
     message.set_game_data2(matchmakingHello.SerializeAsString());
     message.set_rtime32_gc_welcome_timestamp(static_cast<uint32_t>(time(nullptr)));
-    message.set_currency(2); // euros
-    message.set_txn_country_code("FI"); // finland
+    message.set_currency(2);
+    message.set_txn_country_code("FI");
 }
 
 void ClientGC::SendRankUpdate()
 {
     CMsgGCCStrike15_v2_ClientGCRankUpdate message;
 
-    PlayerRankingInfo *rank = message.add_rankings();
+    PlayerRankingInfo* rank = message.add_rankings();
     rank->set_account_id(AccountId());
     rank->set_rank_id(m_config.CompetitiveRank());
     rank->set_wins(m_config.CompetitiveWins());
@@ -390,7 +384,7 @@ void ClientGC::SendRankUpdate()
     m_config.WriteToFile();
 }
 
-void ClientGC::OnClientHello(GCMessageRead &messageRead)
+void ClientGC::OnClientHello(GCMessageRead& messageRead)
 {
     CMsgClientHello hello;
     if (!messageRead.ReadProtobuf(hello))
@@ -413,9 +407,25 @@ void ClientGC::OnClientHello(GCMessageRead &messageRead)
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchmakingGC2ClientHello, mmHello);
 
-    // send all ranks here as well, it's a bit back and forth with real gc
     SendRankUpdate();
 
+    if (m_config.FakeMM())
+    {
+        Platform::Print("[GC] Fake MM is enabled\n");
+        
+        CMsgGCCStrike15_v2_ClientGCRankUpdate rankUpdate;
+        PlayerRankingInfo* rank = rankUpdate.add_rankings();
+        rank->set_account_id(AccountId());
+        rank->set_rank_id(m_config.CompetitiveRank());
+        rank->set_wins(m_config.CompetitiveWins());
+        rank->set_rank_type_id(RankTypeCompetitive);
+        
+        SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientGCRankUpdate, rankUpdate);
+        
+        Platform::Print("[GC] Fake MM: rank %d, wins %d\n", 
+            m_config.CompetitiveRank(), m_config.CompetitiveWins());
+    }
+    
     m_config.WriteToFile();
 }
 
@@ -493,7 +503,7 @@ static void AddressString(uint32_t ip, uint32_t port, char *buffer, size_t buffe
         port);
 }
 
-void ClientGC::ClientRequestJoinServerData(GCMessageRead &messageRead)
+void ClientGC::ClientRequestJoinServerData(GCMessageRead& messageRead)
 {
     CMsgGCCStrike15_v2_ClientRequestJoinServerData request;
     if (!messageRead.ReadProtobuf(request))
@@ -503,14 +513,6 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead &messageRead)
     }
 
     CMsgGCCStrike15_v2_ClientRequestJoinServerData response = request;
-    
-    if (m_config.FakeMM())
-    {
-        response.mutable_res()->set_match_id(194876325);   // fake match id
-        response.mutable_res()->set_rank_type(RankTypeCompetitive);
-        Platform::Print("[GC] Fake MM enabled: spoofing official match\n");
-    }
-
     response.mutable_res()->set_serverid(request.version());
     response.mutable_res()->set_direct_udp_ip(request.server_ip());
     response.mutable_res()->set_direct_udp_port(request.server_port());
@@ -519,6 +521,14 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead &messageRead)
     char addressString[32];
     AddressString(request.server_ip(), request.server_port(), addressString, sizeof(addressString));
     response.mutable_res()->set_server_address(addressString);
+
+    if (m_config.FakeMM())
+    {
+        response.mutable_res()->set_match_id(static_cast<uint64_t>(time(nullptr)));
+        m_matchInProgress = true;
+        m_matchStartTime = static_cast<uint64_t>(time(nullptr));
+        Platform::Print("[GC] Fake MM activated for this match\n");
+    }
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
 }
@@ -1002,6 +1012,35 @@ void ClientGC::RemoveItemName(GCMessageRead &messageRead)
     m_inventory.WriteToFile();
 }
 
+int ClientGC::XPForLevel(int level) const
+{
+    if (level <= 1)
+        return 500;
+    int base = 500 + (level - 1) * 250;
+    int bonus = (level - 1) * (level - 2) * 20;
+    return base + bonus;
+}
+
+bool ClientGC::IsMatchEnded() const
+{
+    if (!m_matchInProgress)
+        return false;
+
+    // Проверяем через Steam API состояние матча
+    // В CS:GO можно проверить через ISteamGameServer или через состояние игры
+    // Простая проверка: если прошло больше 30 секунд с начала матча и игра не активна
+    // Реализуй через свои хуки или проверку состояния игры
+    
+    // Заглушка: матч длится минимум 30 секунд
+    uint32_t now = static_cast<uint32_t>(time(nullptr));
+    if (now - m_matchStartTime < 30)
+        return false;
+
+    // Проверяем, активен ли матч через игру
+    // TODO: добавить реальную проверку через хуки или панораму
+    return false;
+}
+
 void ClientGC::OnMatchEnd()
 {
     if (!m_config.FakeMM())
@@ -1019,22 +1058,37 @@ void ClientGC::OnMatchEnd()
 
     m_config.SetLevel(level);
     m_config.SetXp(newXp);
+
+    // Начисляем победу в рейтинге
+    int wins = m_config.CompetitiveWins() + 1;
+    m_config.SetCompetitiveWins(wins);
+
+    // Повышение ранга (примерная логика)
+    // Каждые 10 побед +1 ранг
+    if (wins % 10 == 0)
+    {
+        RankId currentRank = m_config.CompetitiveRank();
+        if (currentRank < RankGlobalElite)
+        {
+            m_config.SetCompetitiveRank(static_cast<RankId>(currentRank + 1));
+        }
+    }
+
     m_config.WriteToFile();
 
+    // Отправляем обновление в игру
     SendRankUpdate();
 
-    Platform::Print("[GC] Match ended: +%d XP, new level %d (XP: %d/%d)\n", 
-        xpGain, level, newXp, XPForLevel(level + 1));
-}
+    // Отправляем уведомление о завершении матча
+    CMsgGCCStrike15_v2_MatchEndRunRewardDrops notification;
+    notification.set_match_id(m_matchStartTime);
+    notification.set_xp_earned(xpGain);
+    notification.set_new_level(level);
+    SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchEndRunRewardDrops, notification);
 
-int ClientGC::XPForLevel(int level) const
-{
-    // Real CS:GO xp formula for lvl up
-    // XP = 500 + (level - 1) * 250 + (level - 1) * (level - 2) * 20
-    if (level <= 1)
-        return 500;
+    Platform::Print("[GC] Fake MM match ended: +%d XP, new level %d, wins %d\n",
+        xpGain, level, wins);
 
-    int base = 500 + (level - 1) * 250;
-    int bonus = (level - 1) * (level - 2) * 20;
-    return base + bonus;
+    m_matchInProgress = false;
+    m_matchStartTime = 0;
 }

@@ -85,5 +85,11 @@ private:
     void MonitorConfigFile();
     uint64_t m_configLastWriteTime{ 0 };
 
+
+    void OnMatchEnd();
     int XPForLevel(int level) const;
+    bool IsMatchEnded() const;
+
+    bool m_matchInProgress{ false };
+    uint64_t m_matchStartTime{ 0 };
 };
