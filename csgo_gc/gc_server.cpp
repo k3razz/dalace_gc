@@ -124,6 +124,51 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
         return;
     }
 
+    // Проверяем, включён ли Fake MM
+    GCConfig config;
+    bool fakeMM = config.FakeMM();
+
+    // Fake MM: подмена ClientRequestJoinServerData
+    if (fakeMM && validate.TypeUnmasked() == k_EMsgGCCStrike15_v2_ClientRequestJoinServerData)
+    {
+        CMsgGCCStrike15_v2_ClientRequestJoinServerData request;
+        if (!validate.ReadProtobuf(request))
+        {
+            Platform::Print("Fake MM: Failed to parse ClientRequestJoinServerData\n");
+            return;
+        }
+
+        // Создаём ответ с подменой
+        CMsgGCCStrike15_v2_ClientRequestJoinServerData response = request;
+        response.mutable_res()->set_serverid(request.version());
+        response.mutable_res()->set_direct_udp_ip(request.server_ip());
+        response.mutable_res()->set_direct_udp_port(request.server_port());
+        
+        // Генерируем валидный reservation_id
+        uint64_t fakeReservationId = GameServerCookieId;
+        response.mutable_res()->set_reservationid(fakeReservationId);
+        
+        // Добавляем match_id
+        uint64_t matchId = static_cast<uint64_t>(time(nullptr));
+        response.mutable_res()->set_match_id(matchId);
+
+        char addressString[32];
+        snprintf(addressString, sizeof(addressString), "%u.%u.%u.%u:%u",
+            (request.server_ip() >> 24) & 0xff,
+            (request.server_ip() >> 16) & 0xff,
+            (request.server_ip() >> 8) & 0xff,
+            request.server_ip() & 0xff,
+            request.server_port());
+        response.mutable_res()->set_server_address(addressString);
+
+        // Отправляем подменённый ответ
+        GCMessageWrite messageWrite{ k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response };
+        m_outgoingMessages.emplace(messageWrite);
+
+        Platform::Print("[GC] Fake MM: spoofed reservation_id and match_id for official match\n");
+        return;
+    }
+
     // validate the type and contents
     bool isValid = false;
 

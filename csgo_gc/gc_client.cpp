@@ -524,9 +524,11 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead& messageRead)
 
     if (m_config.FakeMM())
     {
+        uint64_t matchId = static_cast<uint64_t>(time(nullptr));
+        response.mutable_res()->set_match_id(matchId);
         m_matchInProgress = true;
-        m_matchStartTime = static_cast<uint64_t>(time(nullptr));
-        Platform::Print("[GC] Fake MM activated for this match\n");
+        m_matchStartTime = matchId;
+        Platform::Print("[GC] Fake MM: match_id=%llu set, match tracking started\n", matchId);
     }
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
