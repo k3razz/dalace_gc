@@ -352,6 +352,8 @@ void ClientGC::OnClientHello(GCMessageRead &messageRead)
 
     // send all ranks here as well, it's a bit back and forth with real gc
     SendRankUpdate();
+
+    m_config.WriteToFile();
 }
 
 void ClientGC::AdjustItemEquippedState(GCMessageRead &messageRead)

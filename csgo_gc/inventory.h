@@ -16,7 +16,8 @@ public:
     Inventory(uint64_t steamId, const GCConfig &config);
     ~Inventory();
 
-
+    void WriteToFile() const;
+    
     void BuildCacheSubscription(CMsgSOCacheSubscribed &message, int level, bool server);
 
     bool EquipItem(uint64_t itemId, uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update);
@@ -93,7 +94,6 @@ private:
     void ReadFromFile();
     void ReadItem(const KeyValue &itemKey, CSOEconItem &item) const;
 
-    void WriteToFile() const;
     void WriteItem(KeyValue &itemKey, const CSOEconItem &item) const;
 
     // helper, only called via EquipItem
