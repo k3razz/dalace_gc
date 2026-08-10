@@ -131,7 +131,7 @@ private:
     }
 
     const uint64_t m_steamId;
-    const GCConfig &m_config;
+    GCConfig m_config;
     ItemSchema m_itemSchema;
     Random m_random;
     uint32_t m_lastHighItemId{};

@@ -192,6 +192,27 @@ void ClientGC::MonitorInventoryFile()
     }
 }
 
+void ClientGC::MonitorConfigFile()
+{
+    struct stat st;
+    if (stat("csgo_gc/config.txt", &st) == 0)
+    {
+        uint64_t modTime = static_cast<uint64_t>(st.st_mtime);
+        if (modTime > m_configLastWriteTime)
+        {
+            m_configLastWriteTime = modTime;
+            
+            Platform::Print("[GC] config.txt changed on disk, reloading...\n");
+            
+            m_config = GCConfig();
+            
+            SendRankUpdate();
+            
+            Platform::Print("[GC] Config reloaded from disk\n");
+        }
+    }
+}
+
 void ClientGC::Update()
 {
     m_networking.Update();
@@ -205,6 +226,7 @@ void ClientGC::Update()
     }
 
     MonitorInventoryFile();
+    MonitorConfigFile();
 }
 
 bool ClientGC::GetMicroTransactionResponse(MicroTxnAuthorizationResponse_t &response)

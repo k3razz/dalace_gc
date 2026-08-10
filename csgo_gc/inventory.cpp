@@ -40,6 +40,8 @@ inline bool IsDefaultItemId(uint64_t itemId, uint32_t &defIndex, uint32_t &paint
 Inventory::Inventory(uint64_t steamId, const GCConfig &config)
     : m_steamId{ steamId }
     , m_config{ config }
+    , m_itemSchema{}
+    , m_random{}
 {
     ReadFromFile();
 }

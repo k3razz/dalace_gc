@@ -81,4 +81,7 @@ private:
 
     void MonitorInventoryFile();
     uint64_t m_inventoryLastWriteTime{ 0 };
+
+    void MonitorConfigFile();
+    uint64_t m_configLastWriteTime{ 0 };
 };
