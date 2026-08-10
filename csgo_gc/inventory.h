@@ -3,6 +3,7 @@
 #include "gc_const_csgo.h"
 #include "item_schema.h"
 #include "random.h"
+#include "config.h"
 #include <mutex>
 
 class GCConfig;
