@@ -170,6 +170,14 @@ void ClientGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
 void ClientGC::Update()
 {
     m_networking.Update();
+
+    static uint32_t lastAutoSave = 0;
+    uint32_t now = static_cast<uint32_t>(time(nullptr));
+    if (now - lastAutoSave >= 30)
+    {
+        m_inventory.WriteToFile();
+        lastAutoSave = now;
+    }
 }
 
 bool ClientGC::GetMicroTransactionResponse(MicroTxnAuthorizationResponse_t &response)
