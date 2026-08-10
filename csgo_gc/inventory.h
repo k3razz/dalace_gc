@@ -17,7 +17,8 @@ public:
     ~Inventory();
 
     void WriteToFile() const;
-    
+    void ReadFromFile();
+
     void BuildCacheSubscription(CMsgSOCacheSubscribed &message, int level, bool server);
 
     bool EquipItem(uint64_t itemId, uint32_t classId, uint32_t slotId, CMsgSOMultipleObjects &update);
@@ -91,7 +92,6 @@ private:
     CSOEconItem &CreateItem(const CSOEconItem &copyFrom);
     CSOEconItem &CreateItem(uint32_t defIndex, ItemOrigin origin, UnacknowledgedType unacknowledgedType);
 
-    void ReadFromFile();
     void ReadItem(const KeyValue &itemKey, CSOEconItem &item) const;
 
     void WriteItem(KeyValue &itemKey, const CSOEconItem &item) const;
