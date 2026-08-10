@@ -29,8 +29,14 @@ public:
     int CommendedLeader() const { return m_commendedLeader; }
     int Level() const { return m_level; }
     int Xp() const { return m_xp; }
+    bool FakeMM() const { return m_fakeMM; }
 
     void WriteToFile() const;
+
+    void SetLevel(int level) { m_level = level; }
+    void SetXp(int xp) { m_xp = xp; }
+    void SetCompetitiveRank(RankId rank) { m_competitiveRank = rank; }
+    void SetCompetitiveWins(int wins) { m_competitiveWins = wins; }
 
     float GetRarityWeight(uint32_t rarity) const;
 
@@ -50,6 +56,7 @@ private:
     int m_commendedLeader{ 0 };
     int m_level{ 0 };
     int m_xp{ 0 };
+    bool m_fakeMM{ false };
 
     // default to valve weights
     std::vector<RarityWeight> m_rarityWeights{

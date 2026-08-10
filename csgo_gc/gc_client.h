@@ -84,4 +84,6 @@ private:
 
     void MonitorConfigFile();
     uint64_t m_configLastWriteTime{ 0 };
+
+    int XPForLevel(int level) const;
 };

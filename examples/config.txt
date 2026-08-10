@@ -30,3 +30,6 @@
 
 // remove keys, cases, stickers, etc. after they've been used
 "destroy_used_items"	"1"
+
+// 0 = disabled, 1 = enabled (makes bot matches count as official matches with rank/XP)
+"fake_mm"	"1"

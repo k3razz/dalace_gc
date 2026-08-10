@@ -227,6 +227,12 @@ void ClientGC::Update()
 
     MonitorInventoryFile();
     MonitorConfigFile();
+
+    if (m_matchInProgress && IsMatchEnded())
+    {
+        OnMatchEnd();
+        m_matchInProgress = false;
+    }
 }
 
 bool ClientGC::GetMicroTransactionResponse(MicroTxnAuthorizationResponse_t &response)
@@ -497,6 +503,14 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead &messageRead)
     }
 
     CMsgGCCStrike15_v2_ClientRequestJoinServerData response = request;
+    
+    if (m_config.FakeMM())
+    {
+        response.mutable_res()->set_match_id(194876325);   // fake match id
+        response.mutable_res()->set_rank_type(RankTypeCompetitive);
+        Platform::Print("[GC] Fake MM enabled: spoofing official match\n");
+    }
+
     response.mutable_res()->set_serverid(request.version());
     response.mutable_res()->set_direct_udp_ip(request.server_ip());
     response.mutable_res()->set_direct_udp_port(request.server_port());
@@ -986,4 +1000,41 @@ void ClientGC::RemoveItemName(GCMessageRead &messageRead)
         assert(false);
     }
     m_inventory.WriteToFile();
+}
+
+void ClientGC::OnMatchEnd()
+{
+    if (!m_config.FakeMM())
+        return;
+
+    int xpGain = 100 + Random{}.Integer(0, 150);
+    int newXp = m_config.Xp() + xpGain;
+
+    int level = m_config.Level();
+    while (newXp >= XPForLevel(level + 1))
+    {
+        newXp -= XPForLevel(level + 1);
+        level++;
+    }
+
+    m_config.SetLevel(level);
+    m_config.SetXp(newXp);
+    m_config.WriteToFile();
+
+    SendRankUpdate();
+
+    Platform::Print("[GC] Match ended: +%d XP, new level %d (XP: %d/%d)\n", 
+        xpGain, level, newXp, XPForLevel(level + 1));
+}
+
+int ClientGC::XPForLevel(int level) const
+{
+    // Real CS:GO xp formula for lvl up
+    // XP = 500 + (level - 1) * 250 + (level - 1) * (level - 2) * 20
+    if (level <= 1)
+        return 500;
+
+    int base = 500 + (level - 1) * 250;
+    int bonus = (level - 1) * (level - 2) * 20;
+    return base + bonus;
 }
