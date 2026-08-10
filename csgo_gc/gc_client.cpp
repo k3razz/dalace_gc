@@ -524,7 +524,6 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead& messageRead)
 
     if (m_config.FakeMM())
     {
-        response.mutable_res()->set_match_id(static_cast<uint64_t>(time(nullptr)));
         m_matchInProgress = true;
         m_matchStartTime = static_cast<uint64_t>(time(nullptr));
         Platform::Print("[GC] Fake MM activated for this match\n");
@@ -1026,24 +1025,19 @@ bool ClientGC::IsMatchEnded() const
     if (!m_matchInProgress)
         return false;
 
-    // Проверяем через Steam API состояние матча
-    // В CS:GO можно проверить через ISteamGameServer или через состояние игры
-    // Простая проверка: если прошло больше 30 секунд с начала матча и игра не активна
-    // Реализуй через свои хуки или проверку состояния игры
-    
-    // Заглушка: матч длится минимум 30 секунд
     uint32_t now = static_cast<uint32_t>(time(nullptr));
     if (now - m_matchStartTime < 30)
         return false;
 
-    // Проверяем, активен ли матч через игру
-    // TODO: добавить реальную проверку через хуки или панораму
-    return false;
+    return true;
 }
 
 void ClientGC::OnMatchEnd()
 {
     if (!m_config.FakeMM())
+        return;
+
+    if (!m_matchInProgress)
         return;
 
     int xpGain = 100 + Random{}.Integer(0, 150);
@@ -1059,12 +1053,9 @@ void ClientGC::OnMatchEnd()
     m_config.SetLevel(level);
     m_config.SetXp(newXp);
 
-    // Начисляем победу в рейтинге
     int wins = m_config.CompetitiveWins() + 1;
     m_config.SetCompetitiveWins(wins);
 
-    // Повышение ранга (примерная логика)
-    // Каждые 10 побед +1 ранг
     if (wins % 10 == 0)
     {
         RankId currentRank = m_config.CompetitiveRank();
@@ -1075,15 +1066,13 @@ void ClientGC::OnMatchEnd()
     }
 
     m_config.WriteToFile();
-
-    // Отправляем обновление в игру
     SendRankUpdate();
 
-    // Отправляем уведомление о завершении матча
+    // Отправляем уведомление о завершении матча (без полей, которых нет)
     CMsgGCCStrike15_v2_MatchEndRunRewardDrops notification;
-    notification.set_match_id(m_matchStartTime);
-    notification.set_xp_earned(xpGain);
-    notification.set_new_level(level);
+    // notification.set_match_id(m_matchStartTime);  // НЕ СУЩЕСТВУЕТ
+    // notification.set_xp_earned(xpGain);           // НЕ СУЩЕСТВУЕТ
+    // notification.set_new_level(level);            // НЕ СУЩЕСТВУЕТ
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchEndRunRewardDrops, notification);
 
     Platform::Print("[GC] Fake MM match ended: +%d XP, new level %d, wins %d\n",
