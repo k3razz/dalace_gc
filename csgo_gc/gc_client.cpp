@@ -167,6 +167,31 @@ void ClientGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
     }
 }
 
+void ClientGC::MonitorInventoryFile()
+{
+    struct stat st;
+    if (stat("csgo_gc/inventory.txt", &st) == 0)
+    {
+        uint64_t modTime = static_cast<uint64_t>(st.st_mtime);
+        if (modTime > m_inventoryLastWriteTime)
+        {
+            m_inventoryLastWriteTime = modTime;
+            
+            Platform::Print("[GC] inventory.txt changed on disk, reloading...\n");
+            
+            m_inventory.ReadFromFile();
+            
+            CMsgSOCacheSubscribed message;
+            m_inventory.BuildCacheSubscription(message, m_config.Level(), true);
+            SendMessageToGame(true, k_ESOMsg_CacheSubscribed, message);
+            
+            SendMessageToGame(false, k_ESOMsg_CacheSubscribed, message);
+            
+            Platform::Print("[GC] Inventory reloaded from disk\n");
+        }
+    }
+}
+
 void ClientGC::Update()
 {
     m_networking.Update();
@@ -178,6 +203,8 @@ void ClientGC::Update()
         m_inventory.WriteToFile();
         lastAutoSave = now;
     }
+
+    MonitorInventoryFile();
 }
 
 bool ClientGC::GetMicroTransactionResponse(MicroTxnAuthorizationResponse_t &response)

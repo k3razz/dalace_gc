@@ -78,4 +78,7 @@ private:
 
     // microtransactions, we only have one going at a time
     Transaction m_transaction{};
+
+    void MonitorInventoryFile();
+    uint64_t m_inventoryLastWriteTime{ 0 };
 };
