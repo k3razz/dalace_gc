@@ -153,7 +153,7 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
 
 
         GCMessageWrite messageWrite{ k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response };
-        m_outgoingMessages.emplace(messageWrite);
+        m_outgoingMessages.emplace(std::move(messageWrite));
 
         Platform::Print("[GC] Fake MM: spoofed reservation_id for official match\n");
         return;
