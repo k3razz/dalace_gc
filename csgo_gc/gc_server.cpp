@@ -3,6 +3,7 @@
 #include "gc_const.h"
 #include "gc_const_csgo.h"
 #include "graffiti.h"
+#include "config.h"
 
 const char *MessageName(uint32_t type);
 
@@ -118,17 +119,14 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
 
     if (!validate.IsProtobuf())
     {
-        // all the allowed messages are protobuf based
         Platform::Print("ServerGC: ignoring non protobuf message %u from %llu\n",
             validate.TypeUnmasked(), steamId);
         return;
     }
 
-    // Проверяем, включён ли Fake MM
     GCConfig config;
     bool fakeMM = config.FakeMM();
 
-    // Fake MM: подмена ClientRequestJoinServerData
     if (fakeMM && validate.TypeUnmasked() == k_EMsgGCCStrike15_v2_ClientRequestJoinServerData)
     {
         CMsgGCCStrike15_v2_ClientRequestJoinServerData request;
@@ -138,19 +136,11 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
             return;
         }
 
-        // Создаём ответ с подменой
         CMsgGCCStrike15_v2_ClientRequestJoinServerData response = request;
         response.mutable_res()->set_serverid(request.version());
         response.mutable_res()->set_direct_udp_ip(request.server_ip());
         response.mutable_res()->set_direct_udp_port(request.server_port());
-        
-        // Генерируем валидный reservation_id
-        uint64_t fakeReservationId = GameServerCookieId;
-        response.mutable_res()->set_reservationid(fakeReservationId);
-        
-        // Добавляем match_id
-        uint64_t matchId = static_cast<uint64_t>(time(nullptr));
-        response.mutable_res()->set_match_id(matchId);
+        response.mutable_res()->set_reservationid(GameServerCookieId);
 
         char addressString[32];
         snprintf(addressString, sizeof(addressString), "%u.%u.%u.%u:%u",
@@ -161,11 +151,11 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
             request.server_port());
         response.mutable_res()->set_server_address(addressString);
 
-        // Отправляем подменённый ответ
+
         GCMessageWrite messageWrite{ k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response };
         m_outgoingMessages.emplace(messageWrite);
 
-        Platform::Print("[GC] Fake MM: spoofed reservation_id and match_id for official match\n");
+        Platform::Print("[GC] Fake MM: spoofed reservation_id for official match\n");
         return;
     }
 

@@ -208,7 +208,8 @@ void ClientGC::MonitorConfigFile()
             
             SendRankUpdate();
             
-            Platform::Print("[GC] Config reloaded from disk\n");
+            Platform::Print("[GC] Config reloaded: level=%d, xp=%d\n", 
+                m_config.Level(), m_config.Xp());
         }
     }
 }
@@ -360,27 +361,43 @@ void ClientGC::BuildClientWelcome(CMsgClientWelcome& message, const CMsgCStrike1
 
 void ClientGC::SendRankUpdate()
 {
-    CMsgGCCStrike15_v2_ClientGCRankUpdate message;
-
-    PlayerRankingInfo* rank = message.add_rankings();
+    CMsgGCCStrike15_v2_ClientGCRankUpdate rankMessage;
+    
+    PlayerRankingInfo* rank = rankMessage.add_rankings();
     rank->set_account_id(AccountId());
     rank->set_rank_id(m_config.CompetitiveRank());
     rank->set_wins(m_config.CompetitiveWins());
     rank->set_rank_type_id(RankTypeCompetitive);
 
-    rank = message.add_rankings();
+    rank = rankMessage.add_rankings();
     rank->set_account_id(AccountId());
     rank->set_rank_id(m_config.WingmanRank());
     rank->set_wins(m_config.WingmanWins());
     rank->set_rank_type_id(RankTypeWingman);
 
-    rank = message.add_rankings();
+    rank = rankMessage.add_rankings();
     rank->set_account_id(AccountId());
     rank->set_rank_id(m_config.DangerZoneRank());
     rank->set_wins(m_config.DangerZoneWins());
     rank->set_rank_type_id(RankTypeDangerZone);
 
-    SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientGCRankUpdate, message);
+    SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientGCRankUpdate, rankMessage);
+
+    CMsgGCCStrike15_v2_MatchmakingGC2ClientHello mmHello;
+    mmHello.set_account_id(AccountId());
+    mmHello.set_player_level(m_config.Level());
+    mmHello.set_player_cur_xp(m_config.Xp());
+    
+    mmHello.mutable_commendation()->set_cmd_friendly(m_config.CommendedFriendly());
+    mmHello.mutable_commendation()->set_cmd_teaching(m_config.CommendedTeaching());
+    mmHello.mutable_commendation()->set_cmd_leader(m_config.CommendedLeader());
+
+    SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchmakingGC2ClientHello, mmHello);
+
+    Platform::Print("[GC] Sent rank update: level=%d, xp=%d, commendations=%d/%d/%d\n",
+        m_config.Level(), m_config.Xp(),
+        m_config.CommendedFriendly(), m_config.CommendedTeaching(), m_config.CommendedLeader());
+
     m_config.WriteToFile();
 }
 
@@ -524,11 +541,9 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead& messageRead)
 
     if (m_config.FakeMM())
     {
-        uint64_t matchId = static_cast<uint64_t>(time(nullptr));
-        response.mutable_res()->set_match_id(matchId);
         m_matchInProgress = true;
-        m_matchStartTime = matchId;
-        Platform::Print("[GC] Fake MM: match_id=%llu set, match tracking started\n", matchId);
+        m_matchStartTime = static_cast<uint64_t>(time(nullptr));
+        Platform::Print("[GC] Fake MM: match tracking started\n");
     }
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
