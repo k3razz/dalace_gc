@@ -36,6 +36,11 @@ void ClientGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
     Platform::Print("ClientGC::HandleMessage: type=%u/0x%X, size=%u, structMsg=%d\n",
                     unmaskedType, unmaskedType, size, !messageRead.IsProtobuf());
 
+    if (unmaskedType == 9164)
+    {
+        Platform::Print("[GC] *** ClientRequestJoinServerData DETECTED! ***\n");
+    }
+
     if (messageRead.IsProtobuf())
     {
         Platform::Print("  → protobuf message\n");

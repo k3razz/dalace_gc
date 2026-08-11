@@ -14,6 +14,8 @@ constexpr uint64_t ItemIdDefaultItemMask = 0xfull << 60;
 // technically 5 but there are attributes for 6 stickers...
 constexpr int MaxStickers = 6;
 
+constexpr uint32_t k_EMsgGCCStrike15_v2_ClientRequestJoinServerData = 9164;
+
 enum RankType : uint32_t
 {
     RankTypeCompetitive = 6,
