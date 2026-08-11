@@ -292,8 +292,8 @@ void ClientGC::ClearAuthTicket(uint32_t handle)
 void ClientGC::SendMessageToGame(bool sendToGameServer, uint32_t type,
     const google::protobuf::MessageLite &message, uint64_t jobId)
 {
-    m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse, requestJobId);
-    GCMessageWrite &responseMsg = m_outgoingMessages.back();
+    m_outgoingMessages.emplace(type, message, jobId);
+    const GCMessageWrite &messageWrite = m_outgoingMessages.back();
 
     if (sendToGameServer)
     {
