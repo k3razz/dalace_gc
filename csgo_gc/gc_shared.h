@@ -2,7 +2,6 @@
 
 #include "gc_message.h"
 #include <queue>
-#include <memory>
 
 class SharedGC
 {
@@ -11,5 +10,5 @@ public:
     bool PopOutgoingMessage(uint32_t &type, void *buffer, uint32_t bufferSize, uint32_t &size);
 
 protected:
-    std::queue<std::unique_ptr<GCMessageWrite>> m_outgoingMessages;
+    std::queue<GCMessageWrite> m_outgoingMessages;
 };
