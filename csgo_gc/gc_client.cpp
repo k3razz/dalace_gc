@@ -231,9 +231,8 @@ void ClientGC::Update()
 
     if (m_matchInProgress && IsMatchEnded())
     {
-        Platform::Print("[GC] Update: calling OnMatchEnd()\n");
+        Platform::Print("[GC] Update: match ended, calling OnMatchEnd()\n");
         OnMatchEnd();
-        Platform::Print("[GC] Update: OnMatchEnd() called\n");
     }
 }
 
@@ -547,11 +546,7 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead& messageRead)
     {
         m_matchInProgress = true;
         m_matchStartTime = static_cast<uint64_t>(time(nullptr));
-        Platform::Print("[GC] Fake MM: match tracking started! matchStartTime=%llu\n", m_matchStartTime);
-    }
-    else
-    {
-        Platform::Print("[GC] Fake MM: disabled\n");
+        Platform::Print("[GC] Fake MM: match tracking started\n");
     }
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
@@ -1031,31 +1026,28 @@ int ClientGC::XPForLevel(int level) const
 bool ClientGC::IsMatchEnded() const
 {
     if (!m_matchInProgress)
-    {
-        Platform::Print("[GC] IsMatchEnded: match not in progress\n");
         return false;
-    }
 
     uint32_t now = static_cast<uint32_t>(time(nullptr));
-    uint32_t diff = now - m_matchStartTime;
-    
-    if (diff < 30)
-    {
-        Platform::Print("[GC] IsMatchEnded: only %u seconds passed (need 30)\n", diff);
+    if (now - m_matchStartTime < 30)
         return false;
-    }
 
-    Platform::Print("[GC] IsMatchEnded: match ended after %u seconds\n", diff);
     return true;
 }
 
 void ClientGC::OnMatchEnd()
 {
     if (!m_config.FakeMM())
+    {
+        Platform::Print("[GC] OnMatchEnd: FakeMM disabled, returning\n");
         return;
+    }
 
     if (!m_matchInProgress)
+    {
+        Platform::Print("[GC] OnMatchEnd: match not in progress, returning\n");
         return;
+    }
 
     int xpGain = 100 + Random{}.Integer(0, 150);
     int newXp = m_config.Xp() + xpGain;
@@ -1085,11 +1077,7 @@ void ClientGC::OnMatchEnd()
     m_config.WriteToFile();
     SendRankUpdate();
 
-    // Отправляем уведомление о завершении матча (без полей, которых нет)
     CMsgGCCStrike15_v2_MatchEndRunRewardDrops notification;
-    // notification.set_match_id(m_matchStartTime);  // НЕ СУЩЕСТВУЕТ
-    // notification.set_xp_earned(xpGain);           // НЕ СУЩЕСТВУЕТ
-    // notification.set_new_level(level);            // НЕ СУЩЕСТВУЕТ
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_MatchEndRunRewardDrops, notification);
 
     Platform::Print("[GC] Fake MM match ended: +%d XP, new level %d, wins %d\n",

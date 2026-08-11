@@ -24,24 +24,17 @@ public:
 
     void Update();
 
-    void SaveConfig() { m_config.WriteToFile(); }
-
-    // purchases
     bool GetMicroTransactionResponse(MicroTxnAuthorizationResponse_t &response);
 
-    // called from net code
     void SendSOCacheToGameSever();
     void HandleNetMessage(GCMessageRead &messageRead);
 
-    // Listen-server (offline/bots) mode: bypass P2P and inject directly into ServerGC
     void SetListenServer(ServerGC *serverGC, uint64_t serverSteamId);
 
-    // passed to net code
     void SetAuthTicket(uint32_t handle, const void *data, uint32_t size);
     void ClearAuthTicket(uint32_t handle);
 
 private:
-    // send to the local game and the game server we're connected to (if we're connected)
     void SendMessageToGame(bool sendToGameServer, uint32_t type,
         const google::protobuf::MessageLite &message, uint64_t jobId = JobIdInvalid);
 
@@ -68,6 +61,13 @@ private:
         const CMsgGCCStrike15_v2_MatchmakingGC2ClientHello &matchmakingHello);
     void SendRankUpdate();
 
+    void MonitorInventoryFile();
+    void MonitorConfigFile();
+
+    int XPForLevel(int level) const;
+    bool IsMatchEnded() const;
+    void OnMatchEnd();
+
     uint32_t AccountId() const { return m_steamId & 0xffffffff; }
 
     const uint64_t m_steamId;
@@ -76,19 +76,10 @@ private:
     GCConfig m_config;
     Inventory m_inventory;
 
-    // microtransactions, we only have one going at a time
     Transaction m_transaction{};
 
-    void MonitorInventoryFile();
     uint64_t m_inventoryLastWriteTime{ 0 };
-
-    void MonitorConfigFile();
     uint64_t m_configLastWriteTime{ 0 };
-
-
-    void OnMatchEnd();
-    int XPForLevel(int level) const;
-    bool IsMatchEnded() const;
 
     bool m_matchInProgress{ false };
     uint64_t m_matchStartTime{ 0 };
