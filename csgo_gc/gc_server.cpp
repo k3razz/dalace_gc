@@ -65,8 +65,7 @@ void ServerGC::ClientDisconnected(uint64_t steamId)
     message.mutable_owner_soid()->set_type(SoIdTypeSteamId);
     message.mutable_owner_soid()->set_id(steamId);
 
-    GCMessageWrite msg(k_ESOMsg_CacheUnsubscribed, message);
-    m_outgoingMessages.push(msg);
+    m_outgoingMessages.emplace(k_ESOMsg_CacheUnsubscribed, message);
 }
 
 void ServerGC::Update()
@@ -148,8 +147,7 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
             request.server_port());
         response.mutable_res()->set_server_address(addressString);
 
-        GCMessageWrite msg(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
-        m_outgoingMessages.push(msg);
+        m_outgoingMessages.emplace(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
 
         Platform::Print("[GC] Fake MM: spoofed reservation_id for official match\n");
         return;
@@ -185,8 +183,7 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
         return;
     }
 
-    GCMessageWrite msg(data, size);
-    m_outgoingMessages.push(msg);
+    m_outgoingMessages.emplace(data, size);
 }
 
 void ServerGC::OnServerHello(GCMessageRead &messageRead)
@@ -208,8 +205,7 @@ void ServerGC::OnServerHello(GCMessageRead &messageRead)
     welcome.set_game_data(csWelcome.SerializeAsString());
     welcome.set_rtime32_gc_welcome_timestamp(static_cast<uint32_t>(time(nullptr)));
 
-    GCMessageWrite msg(k_EMsgGCServerWelcome, welcome);
-    m_outgoingMessages.push(msg);
+    m_outgoingMessages.emplace(k_EMsgGCServerWelcome, welcome);
 
     m_receivedHello = true;
     Platform::Print("ServerGC sent ServerWelcome and is ready\n");
