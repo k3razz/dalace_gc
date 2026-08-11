@@ -292,13 +292,14 @@ void ClientGC::ClearAuthTicket(uint32_t handle)
 void ClientGC::SendMessageToGame(bool sendToGameServer, uint32_t type,
     const google::protobuf::MessageLite &message, uint64_t jobId)
 {
-    m_outgoingMessages.emplace(type, message, jobId);
-    const GCMessageWrite &messageWrite = m_outgoingMessages.back();
-
     if (sendToGameServer)
     {
+        GCMessageWrite messageWrite(type, message, jobId);
         m_networking.SendMessage(messageWrite);
+        return;
     }
+    
+    m_outgoingMessages.emplace(type, message, jobId);
 }
 
 constexpr uint32_t MakeAddress(uint32_t v1, uint32_t v2, uint32_t v3, uint32_t v4)
@@ -858,10 +859,6 @@ void ClientGC::EconPreviewDataBlockRequest(GCMessageRead &messageRead)
 
 void ClientGC::UnlockCrate(GCMessageRead &messageRead)
 {
-    // Two variants are seen in older builds:
-    //  1) Struct body MsgGCUnlockCrate_t { keyId, crateId }
-    //  2) Header-only where IDs are encoded into job fields
-    // Keep the incoming source job id for response routing when body variant is used.
     uint64_t requestJobId = messageRead.JobId();
     uint64_t keyId = 0;
     uint64_t crateId = 0;
@@ -891,50 +888,31 @@ void ClientGC::UnlockCrate(GCMessageRead &messageRead)
     CMsgSOSingleObject destroyCrate, destroyKey, newItem;
     CMsgGCItemCustomizationNotification notification;
 
-    if (m_inventory.UnlockCrate(
-            crateId,
-            keyId,
-            destroyCrate,
-            destroyKey,
-            newItem,
-            notification))
+    if (m_inventory.UnlockCrate(crateId, keyId, destroyCrate, destroyKey, newItem, notification))
     {
         Platform::Print("[GC_CLIENT] UnlockCrate succeeded, sending messages\n");
-
-        // Valve GC proven sequence (mikkokko/csgo_gc):
-        //   1. Destroy crate and key
-        //   2. Create the new item
-        //   3. Send ItemCustomizationNotification (NO DELAY)
         Platform::Print("[GC_CLIENT] Sending SO updates and notification\n");
 
-        // Send k_EMsgGCUnlockCrateResponse (1008) FIRST.
-        // Body layout matches MsgGCStandardResponse_t: int16 index + uint32 response.
-        // When request had a struct body, route the response using incoming job ID.
+        if (parsedFromBody)
         {
-            if (parsedFromBody)
-            {
-                m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse, requestJobId);
-            }
-            else
-            {
-                m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse);
-            }
-            GCMessageWrite &responseMsg = m_outgoingMessages.back();
-            responseMsg.WriteUint16(0);
-            responseMsg.WriteUint32(0);
+            m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse, requestJobId);
         }
+        else
+        {
+            m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse);
+        }
+        
+        GCMessageWrite &responseMsg = m_outgoingMessages.back();
+        responseMsg.WriteUint16(0);
+        responseMsg.WriteUint32(0);
 
-        // Destroy consumed items
         SendMessageToGame(true, k_ESOMsg_Destroy, destroyCrate);
         if (destroyKey.has_type_id())
         {
             SendMessageToGame(true, k_ESOMsg_Destroy, destroyKey);
         }
 
-        // Create new item
         SendMessageToGame(true, k_ESOMsg_Create, newItem);
-
-        // Notify client immediately (NO delay, NO ShowItemsPickedUp)
         SendMessageToGame(false, k_EMsgGCItemCustomizationNotification, notification);
     }
     else
