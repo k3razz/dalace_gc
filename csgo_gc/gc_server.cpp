@@ -10,8 +10,6 @@ const char *MessageName(uint32_t type);
 ServerGC::ServerGC()
 {
     Platform::Print("ServerGC spawned\n");
-
-    // also called from ClientGC's constructor
     Graffiti::Initialize();
 }
 
@@ -38,7 +36,6 @@ void ServerGC::HandleMessage(uint32_t type, const void *data, uint32_t size)
             break;
 
         case k_EMsgGCCStrike15_v2_Server2GCClientValidate:
-            // server doesn't want a response so ignore
             break;
 
         case k_EMsgGC_IncrementKillCountAttribute:
@@ -68,14 +65,14 @@ void ServerGC::ClientDisconnected(uint64_t steamId)
     message.mutable_owner_soid()->set_type(SoIdTypeSteamId);
     message.mutable_owner_soid()->set_id(steamId);
 
-    m_outgoingMessages.push(std::make_unique<GCMessageWrite>(k_ESOMsg_CacheUnsubscribed, message));
+    GCMessageWrite msg(k_ESOMsg_CacheUnsubscribed, message);
+    m_outgoingMessages.push(msg);
 }
 
 void ServerGC::Update()
 {
     if (!m_receivedHello)
     {
-        // we're not up yet, just sit and wait
         return;
     }
 
@@ -151,13 +148,13 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
             request.server_port());
         response.mutable_res()->set_server_address(addressString);
 
-        m_outgoingMessages.push(std::make_unique<GCMessageWrite>(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response));
+        GCMessageWrite msg(k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
+        m_outgoingMessages.push(msg);
 
         Platform::Print("[GC] Fake MM: spoofed reservation_id for official match\n");
         return;
     }
 
-    // validate the type and contents
     bool isValid = false;
 
     switch (validate.TypeUnmasked())
@@ -188,7 +185,8 @@ void ServerGC::HandleNetMessage(uint64_t steamId, const void *data, uint32_t siz
         return;
     }
 
-    m_outgoingMessages.push(std::make_unique<GCMessageWrite>(data, size));
+    GCMessageWrite msg(data, size);
+    m_outgoingMessages.push(msg);
 }
 
 void ServerGC::OnServerHello(GCMessageRead &messageRead)
@@ -210,7 +208,8 @@ void ServerGC::OnServerHello(GCMessageRead &messageRead)
     welcome.set_game_data(csWelcome.SerializeAsString());
     welcome.set_rtime32_gc_welcome_timestamp(static_cast<uint32_t>(time(nullptr)));
 
-    m_outgoingMessages.push(std::make_unique<GCMessageWrite>(k_EMsgGCServerWelcome, welcome));
+    GCMessageWrite msg(k_EMsgGCServerWelcome, welcome);
+    m_outgoingMessages.push(msg);
 
     m_receivedHello = true;
     Platform::Print("ServerGC sent ServerWelcome and is ready\n");
