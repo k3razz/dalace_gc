@@ -292,7 +292,8 @@ void ClientGC::ClearAuthTicket(uint32_t handle)
 void ClientGC::SendMessageToGame(bool sendToGameServer, uint32_t type,
     const google::protobuf::MessageLite &message, uint64_t jobId)
 {
-    const GCMessageWrite &messageWrite = m_outgoingMessages.push(std::make_unique<GCMessageWrite>(type, message, jobId));
+    m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse, requestJobId);
+    GCMessageWrite &responseMsg = m_outgoingMessages.back();
 
     if (sendToGameServer)
     {
@@ -910,11 +911,17 @@ void ClientGC::UnlockCrate(GCMessageRead &messageRead)
         // Body layout matches MsgGCStandardResponse_t: int16 index + uint32 response.
         // When request had a struct body, route the response using incoming job ID.
         {
-            GCMessageWrite &responseMsg = parsedFromBody
-                ? m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse, requestJobId)
-                : m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse);
-            responseMsg.WriteUint16(0);  // m_nResponseIndex = 0
-            responseMsg.WriteUint32(0);  // m_eResponse = k_EGCMsgResponseOK = 0
+            if (parsedFromBody)
+            {
+                m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse, requestJobId);
+            }
+            else
+            {
+                m_outgoingMessages.emplace(k_EMsgGCUnlockCrateResponse);
+            }
+            GCMessageWrite &responseMsg = m_outgoingMessages.back();
+            responseMsg.WriteUint16(0);
+            responseMsg.WriteUint32(0);
         }
 
         // Destroy consumed items
