@@ -231,7 +231,9 @@ void ClientGC::Update()
 
     if (m_matchInProgress && IsMatchEnded())
     {
+        Platform::Print("[GC] Update: calling OnMatchEnd()\n");
         OnMatchEnd();
+        Platform::Print("[GC] Update: OnMatchEnd() called\n");
     }
 }
 
@@ -545,7 +547,11 @@ void ClientGC::ClientRequestJoinServerData(GCMessageRead& messageRead)
     {
         m_matchInProgress = true;
         m_matchStartTime = static_cast<uint64_t>(time(nullptr));
-        Platform::Print("[GC] Fake MM: match tracking started\n");
+        Platform::Print("[GC] Fake MM: match tracking started! matchStartTime=%llu\n", m_matchStartTime);
+    }
+    else
+    {
+        Platform::Print("[GC] Fake MM: disabled\n");
     }
 
     SendMessageToGame(false, k_EMsgGCCStrike15_v2_ClientRequestJoinServerData, response);
@@ -1025,12 +1031,21 @@ int ClientGC::XPForLevel(int level) const
 bool ClientGC::IsMatchEnded() const
 {
     if (!m_matchInProgress)
+    {
+        Platform::Print("[GC] IsMatchEnded: match not in progress\n");
         return false;
+    }
 
     uint32_t now = static_cast<uint32_t>(time(nullptr));
-    if (now - m_matchStartTime < 30)
+    uint32_t diff = now - m_matchStartTime;
+    
+    if (diff < 30)
+    {
+        Platform::Print("[GC] IsMatchEnded: only %u seconds passed (need 30)\n", diff);
         return false;
+    }
 
+    Platform::Print("[GC] IsMatchEnded: match ended after %u seconds\n", diff);
     return true;
 }
 
